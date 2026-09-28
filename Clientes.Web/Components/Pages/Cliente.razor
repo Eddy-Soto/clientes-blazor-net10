@@ -1,0 +1,253 @@
+@page "/clientes"
+@page "/cliente"
+@rendermode InteractiveServer
+@using ClienteDto = Clientes.Contracts.Cliente
+@using System.Globalization
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Administración de Clientes · WebEmpresa</PageTitle>
+
+<div class="page-heading">
+    <h1>Administración de Clientes</h1>
+    <button class="btn btn-primary px-3" disabled="@ocupado" @onclick="Nuevo">Nuevo</button>
+</div>
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+<div class="search-area">
+    <label for="buscar" class="form-label">Buscar</label>
+    <div class="d-flex gap-2">
+        <input id="buscar" type="search" class="form-control" placeholder="Buscar por CUI, NIT, nombre, apellido, dirección, teléfono"
+               @bind="Busqueda" @bind:event="oninput" />
+        <button class="btn btn-outline-secondary" disabled="@ocupado" @onclick="Recargar" title="Volver a consultar la API">Actualizar</button>
+    </div>
+</div>
+<div class="table-responsive">
+<table class="table table-striped table-hover align-middle">
+    <thead><tr><th scope="col">CUI</th><th scope="col">NIT</th><th scope="col">Nombres</th><th scope="col">Apellidos</th><th scope="col">Dirección</th><th scope="col">Teléfono</th><th scope="col">Fecha<br />nacimiento</th><th scope="col">Acciones</th></tr></thead>
+    <tbody>
+    @if (ocupado && clientes.Count == 0)
+    {
+        <tr><td colspan="8" class="text-center py-5">Cargando clientes…</td></tr>
+    }
+    else if (Filtrados.Count == 0)
+    {
+        <tr><td colspan="8" class="text-center py-5 text-secondary">@(busqueda.Length > 0 ? "No hay clientes que coincidan con la búsqueda." : "No hay clientes para mostrar.")</td></tr>
+    }
+    @foreach (var cliente in Filtrados.Skip((pagina - 1) * tamano).Take(tamano))
+    {
+        <tr @key="cliente.IdCliente">
+            <td class="text-nowrap">@cliente.CUI</td>
+            <td>@cliente.NIT</td><td>@cliente.Nombres</td><td>@cliente.Apellidos</td>
+            <td>@cliente.Direccion</td><td class="text-nowrap">@cliente.Telefono</td>
+            <td class="text-nowrap">@(cliente.FechaNacimiento?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture))</td>
+            <td class="text-nowrap">
+                <button class="btn btn-warning btn-sm me-2" disabled="@ocupado" @onclick="() => Editar(cliente)">Editar</button>
+                <button class="btn btn-danger btn-sm" disabled="@ocupado" @onclick="() => Confirmar(cliente)">Eliminar</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+</div>
+<div class="table-footer">
+    <span>Total de registros: <strong>@clientes.Count</strong>@if (busqueda.Length > 0) { <span> · Coincidencias: @Filtrados.Count</span> }</span>
+    <nav aria-label="Paginación de clientes">
+        <div class="d-flex gap-3 align-items-center">
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(ocupado || pagina <= 1)" @onclick="() => pagina--">Anterior</button>
+            <span aria-live="polite">Página @pagina de @Paginas</span>
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(ocupado || pagina >= Paginas)" @onclick="() => pagina++">Siguiente</button>
+        </div>
+    </nav>
+</div>
+
+<div @ref="dialogo" class="modal fade" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
+<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+@if (contexto is not null)
+{
+    <EditForm @key="contexto" EditContext="contexto" OnValidSubmit="Guardar" FormName="cliente">
+        <DataAnnotationsValidator />
+        <div class="modal-header">
+            <h2 class="modal-title fs-5" id="tituloModal">@(modelo.IdCliente == 0 ? "Nuevo cliente" : "Editar cliente")</h2>
+            <button type="button" class="btn-close" aria-label="Cerrar" disabled="@ocupado" @onclick="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+            @if (errorModal != "") { <div class="alert alert-danger" role="alert">@errorModal</div> }
+            <p class="text-secondary small">Todos los campos son obligatorios.</p>
+            <fieldset disabled="@ocupado">
+            <div class="row g-3">
+                <div class="col-md-6"><label for="cui" class="form-label">CUI</label><InputText id="cui" class="form-control" @bind-Value="modelo.CUI" maxlength="13" inputmode="numeric" /><ValidationMessage For="() => modelo.CUI" /></div>
+                <div class="col-md-6"><label for="nit" class="form-label">NIT</label><InputText id="nit" class="form-control" @bind-Value="modelo.NIT" maxlength="20" /><ValidationMessage For="() => modelo.NIT" /></div>
+                <div class="col-md-6"><label for="nombres" class="form-label">Nombres</label><InputText id="nombres" class="form-control" @bind-Value="modelo.Nombres" maxlength="100" /><ValidationMessage For="() => modelo.Nombres" /></div>
+                <div class="col-md-6"><label for="apellidos" class="form-label">Apellidos</label><InputText id="apellidos" class="form-control" @bind-Value="modelo.Apellidos" maxlength="100" /><ValidationMessage For="() => modelo.Apellidos" /></div>
+                <div class="col-12"><label for="direccion" class="form-label">Dirección</label><InputText id="direccion" class="form-control" @bind-Value="modelo.Direccion" maxlength="250" /><ValidationMessage For="() => modelo.Direccion" /></div>
+                <div class="col-md-6"><label for="telefono" class="form-label">Teléfono</label><InputText id="telefono" class="form-control" @bind-Value="modelo.Telefono" maxlength="25" type="tel" /><ValidationMessage For="() => modelo.Telefono" /></div>
+                <div class="col-md-6"><label for="fecha" class="form-label">Fecha de nacimiento</label><InputDate id="fecha" class="form-control" @bind-Value="modelo.FechaNacimiento" max="@DateTime.UtcNow.ToString("yyyy-MM-dd")" /><ValidationMessage For="() => modelo.FechaNacimiento" /></div>
+            </div>
+            </fieldset>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" disabled="@ocupado" @onclick="Cerrar">Cancelar</button>
+            <button type="submit" class="btn btn-primary" disabled="@ocupado">@(ocupado ? "Procesando…" : modelo.IdCliente == 0 ? "Guardar" : "Actualizar")</button>
+        </div>
+    </EditForm>
+}
+</div></div></div>
+<div @ref="confirmacion" class="modal fade" tabindex="-1" aria-labelledby="tituloEliminar" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title fs-5" id="tituloEliminar">Eliminar cliente</h2></div>
+    <div class="modal-body">
+        <p>¿Deseas eliminar a <strong>@pendiente?.Nombres @pendiente?.Apellidos</strong>?</p>
+        <p class="text-secondary small">Esta operación no se puede deshacer.</p>
+        @if (errorModal != "") { <div class="alert alert-danger" role="alert">@errorModal</div> }
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-secondary" disabled="@ocupado" @onclick="CancelarEliminar">Cancelar</button>
+        <button class="btn btn-danger" disabled="@ocupado" @onclick="Eliminar">@(ocupado ? "Eliminando…" : "Sí, eliminar")</button>
+    </div>
+</div></div></div>
+
+@code {
+    private List<ClienteDto> clientes = [];
+    private ClienteDto modelo = new();
+    private ClienteDto? pendiente;
+    private EditContext? contexto;
+    private ElementReference dialogo, confirmacion;
+    private bool ocupado, abrirFormulario;
+    private string error = "", errorModal = "", mensaje = "", busqueda = "";
+    private int pagina = 1;
+    private const int tamano = 5;
+    private string Busqueda { get => busqueda; set { busqueda = value; pagina = 1; } }
+    private List<ClienteDto> Filtrados => clientes.Where(c => Coincide(c, busqueda.Trim())).ToList();
+    private int Paginas => Math.Max(1, (int)Math.Ceiling(Filtrados.Count / (double)tamano));
+    private static bool Coincide(ClienteDto c, string texto)
+        => texto.Length == 0 || new[] { c.CUI, c.NIT, c.Nombres, c.Apellidos, c.Nombres + " " + c.Apellidos, c.Direccion, c.Telefono }
+            .Any(valor => CultureInfo.InvariantCulture.CompareInfo.IndexOf(valor ?? "", texto, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0);
+
+    protected override async Task OnInitializedAsync() => await Recargar();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (abrirFormulario)
+        {
+            abrirFormulario = false;
+            await JS.InvokeVoidAsync("clientesModal.abrir", dialogo);
+        }
+    }
+    private async Task Cargar()
+    {
+        clientes = await Http.GetFromJsonAsync<List<ClienteDto>>("api/clientes") ?? [];
+        pagina = Math.Clamp(pagina, 1, Paginas);
+    }
+    private async Task Recargar()
+    {
+        ocupado = true; error = ""; mensaje = "";
+        try { await Cargar(); }
+        catch (Exception ex) when (EsErrorApi(ex)) { error = "No se pudo cargar la lista. Comprueba que la API esté disponible y vuelve a actualizar."; }
+        finally { ocupado = false; }
+    }
+    private void Nuevo() => Abrir(new());
+    private void Editar(ClienteDto c) => Abrir(new()
+    {
+        IdCliente = c.IdCliente, CUI = c.CUI, NIT = c.NIT, Nombres = c.Nombres, Apellidos = c.Apellidos,
+        Telefono = c.Telefono, Direccion = c.Direccion, FechaNacimiento = c.FechaNacimiento
+    });
+    private void Abrir(ClienteDto c)
+    {
+        modelo = c; errorModal = ""; contexto = new EditContext(modelo);
+        contexto.SetFieldCssClassProvider(new BootstrapValidation());
+        abrirFormulario = true;
+    }
+    private async Task Cerrar() => await JS.InvokeVoidAsync("clientesModal.cerrar", dialogo);
+    private async Task Confirmar(ClienteDto c)
+    {
+        pendiente = c; errorModal = "";
+        await JS.InvokeVoidAsync("clientesModal.abrir", confirmacion);
+    }
+    private async Task CancelarEliminar() => await JS.InvokeVoidAsync("clientesModal.cerrar", confirmacion);
+
+    private async Task Guardar()
+    {
+        if (ocupado) return;
+        ocupado = true; errorModal = ""; error = ""; mensaje = "";
+        var creando = modelo.IdCliente == 0;
+        try
+        {
+            using var response = creando
+                ? await Http.PostAsJsonAsync("api/clientes", modelo.ToRequest())
+                : await Http.PutAsJsonAsync($"api/clientes/{modelo.IdCliente}", modelo.ToRequest());
+            if (!response.IsSuccessStatusCode) { errorModal = await ErrorRespuesta(response); return; }
+            var idGuardado = modelo.IdCliente;
+            if (creando)
+            {
+                try { idGuardado = (await response.Content.ReadFromJsonAsync<ClienteDto>())?.IdCliente ?? 0; }
+                catch (System.Text.Json.JsonException) { /* El 201 ya confirma el guardado. */ }
+            }
+            await Cerrar();
+            mensaje = creando ? "Cliente guardado correctamente." : "Cliente actualizado correctamente.";
+            // Limpiar el filtro y ubicar el registro para que el resultado quede visible.
+            busqueda = "";
+            await RefrescarTrasCambio(idGuardado);
+        }
+        catch (Exception ex) when (EsErrorApi(ex)) { errorModal = "No se pudo confirmar la operación. Revisa la lista antes de reintentar."; }
+        finally { ocupado = false; }
+    }
+    private async Task Eliminar()
+    {
+        if (ocupado || pendiente is null) return;
+        ocupado = true; errorModal = ""; error = ""; mensaje = "";
+        try
+        {
+            using var response = await Http.DeleteAsync($"api/clientes/{pendiente.IdCliente}");
+            if (!response.IsSuccessStatusCode) { errorModal = await ErrorRespuesta(response); return; }
+            await CancelarEliminar();
+            mensaje = "Cliente eliminado correctamente.";
+            await RefrescarTrasCambio();
+        }
+        catch (Exception ex) when (EsErrorApi(ex)) { errorModal = "No se pudo confirmar la eliminación. Revisa la lista antes de reintentar."; }
+        finally { ocupado = false; }
+    }
+    private async Task RefrescarTrasCambio(int id = 0)
+    {
+        try
+        {
+            await Cargar();
+            var indice = clientes.FindIndex(c => c.IdCliente == id);
+            if (indice >= 0) pagina = indice / tamano + 1;
+        }
+        catch (Exception ex) when (EsErrorApi(ex)) { error = "La operación se completó, pero no se pudo actualizar la tabla. Pulsa Actualizar."; }
+    }
+    private static bool EsErrorApi(Exception ex) => ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException;
+    private static async Task<string> ErrorRespuesta(HttpResponseMessage response)
+    {
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return "El registro ya no existe. Cierra esta ventana y actualiza la lista.";
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            return "Ya existe un cliente con ese CUI.";
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            try
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ValidationProblem>();
+                if (problem?.Errors is { Count: > 0 })
+                    return string.Join(" ", problem.Errors.Values.SelectMany(x => x));
+            }
+            catch (System.Text.Json.JsonException) { }
+            return "La API rechazó los datos. Revisa los campos.";
+        }
+        return $"La API devolvió un error ({(int)response.StatusCode}). Intenta nuevamente.";
+    }
+    private sealed class ValidationProblem { public Dictionary<string, string[]> Errors { get; set; } = []; }
+    private sealed class BootstrapValidation : FieldCssClassProvider
+    {
+        public override string GetFieldCssClass(EditContext editContext, in FieldIdentifier fieldIdentifier)
+            => editContext.GetValidationMessages(fieldIdentifier).Any() ? "is-invalid"
+                : editContext.IsModified(fieldIdentifier) ? "is-valid" : "";
+    }
+}
+

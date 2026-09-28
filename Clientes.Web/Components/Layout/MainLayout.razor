@@ -1,0 +1,16 @@
+@inherits LayoutComponentBase
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/">WebEmpresa</a>
+        <nav aria-label="Navegación principal">
+            <NavLink class="nav-item" href="/" Match="NavLinkMatch.All"><span aria-hidden="true">⌂</span> Home</NavLink>
+            <NavLink class="nav-item" href="clientes"><span aria-hidden="true">▣</span> Cliente</NavLink>
+        </nav>
+    </aside>
+    <div class="main-panel">
+        <header class="topbar"><NavLink href="acerca">Acerca de</NavLink></header>
+        <main class="content">@Body</main>
+    </div>
+</div>
+<div id="blazor-error-ui" role="alert">Se perdió la conexión. <a href="" class="reload">Recargar</a><a class="dismiss" role="button" tabindex="0">×</a></div>
+

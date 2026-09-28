@@ -1,0 +1,46 @@
+html, body { font-family: "Segoe UI", Arial, sans-serif; color: #262b32; margin: 0; background: #fff; }
+a { color: #0867cd; }
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar { width: 250px; flex-shrink: 0; background: linear-gradient(155deg, #102c54 0%, #341449 78%); color: #fff; }
+.brand { display: block; padding: 1.25rem 1.5rem; color: #fff; font-size: 1.4rem; text-decoration: none; border-bottom: 1px solid #ffffff12; }
+.sidebar nav { padding: 1.1rem .8rem; }
+.sidebar .nav-item { display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; margin-bottom: .4rem; color: #e5e4ed; text-decoration: none; border-radius: .3rem; }
+.sidebar .nav-item span { font-size: 1.5rem; line-height: 1; width: 1.4rem; text-align: center; }
+.sidebar .nav-item.active, .sidebar .nav-item:hover { background: #ffffff26; color: #fff; }
+.main-panel { min-width: 0; flex: 1; }
+.topbar { height: 64px; background: #f7f7f7; border-bottom: 1px solid #e6e6e6; display: flex; align-items: center; justify-content: flex-end; padding: 0 2rem; }
+.topbar a { text-decoration: none; }
+.content { padding: 2.7rem 2.2rem; max-width: 1700px; margin: auto; }
+h1 { font-size: clamp(1.6rem, 2.3vw, 2.1rem); font-weight: 600; margin: 0; }
+h1:focus { outline: none; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; }
+.search-area { margin-bottom: 1.5rem; }
+.search-area .form-label { font-weight: 600; }
+.search-area .form-control { min-height: 46px; }
+.table { font-size: .95rem; }
+.table thead th { background: #292d32; color: #fff; font-weight: 600; padding: 1rem .8rem; border: 0; vertical-align: middle; }
+.table tbody td { padding: 1rem .8rem; }
+.table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-bg-type: #f4f5f7; }
+.table-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.3rem; }
+.table-footer .pagination { margin: 0; }
+.btn-warning { background: #f0bd35; border-color: #f0bd35; }
+.btn-danger { background: #c84759; border-color: #c84759; }
+.validation-message { color: var(--bs-danger); font-size: .85rem; margin-top: .3rem; }
+.modal-header { background: #f7f8fa; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { background: #fbfbfc; }
+.blazor-error-boundary { background: #b32121; color: white; padding: 1rem; }
+.blazor-error-boundary::after { content: "Se produjo un error. Recarga la página."; }
+@media (min-width: 900px) { .sidebar { position: sticky; top: 0; height: 100vh; } }
+@media (max-width: 899px) {
+    .app-shell { display: block; }
+    .sidebar { width: 100%; }
+    .brand { padding: .9rem 1.1rem; }
+    .sidebar nav { display: flex; gap: .5rem; padding: .5rem .7rem; }
+    .sidebar .nav-item { margin: 0; padding: .6rem .8rem; }
+    .topbar { height: 44px; padding: 0 1rem; }
+    .content { padding: 1.5rem 1rem; }
+    .table { min-width: 950px; }
+    .page-heading { align-items: flex-start; }
+}
+
